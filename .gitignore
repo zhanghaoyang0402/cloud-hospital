@@ -1,0 +1,33 @@
+# ===== 系统与 IDE =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# ===== Java / Maven =====
+target/
+build/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.log
+
+# ===== Node / 前端 =====
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===== 本地配置（含数据库密码，不入库） =====
+backend/src/main/resources/application.yml
+backend/src/main/resources/application-*.yml
+!backend/src/main/resources/application.yml.example
+
+# ===== 运行产物 =====
+docs/images/*.tmp
