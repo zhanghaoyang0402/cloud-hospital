@@ -36,13 +36,12 @@ cloud-hospital/
 ├── backend/                        # Spring Boot 后端
 │   ├── src/main/java/com/neuedu/
 │   │   ├── controller/             # 8 个 Controller，24 个接口
-│   │   ├── service/impl/           # 业务逻辑，关键方法带 @Transactional
-│   │   ├── mapper/                 # MyBatis-Plus BaseMapper + 少量注解 SQL
+│   │   ├── service/impl/           # 业务逻辑，6 个关键方法带 @Transactional
+│   │   ├── mapper/                 # MyBatis-Plus BaseMapper + 注解式动态 SQL
 │   │   ├── entity/ dto/ enums/     # 实体、出入参、状态枚举
 │   │   └── config/                 # 分页插件、CORS
 │   ├── src/main/resources/
-│   │   ├── application.yml.example # 配置模板（复制为 application.yml 后填自己的密码）
-│   │   └── mapper/                 # 自定义 XML（列表联表查询、收费明细聚合）
+│   │   └── application.yml.example # 配置模板（复制为 application.yml 后填自己的密码）
 │   └── pom.xml
 ├── frontend/                       # Vue 3 前端
 │   ├── src/
@@ -121,6 +120,19 @@ npm run dev
 
 单价 × 数量用 `BigDecimal.multiply`，处方总价由 `calcTotal` 在服务端累加，前端只做展示，不参与金额计算。
 
+**6. 复杂联表用注解 SQL，没有引入 XML**
+
+看诊记录列表要联 patient / department / doctor / medical_record 四张表，还有 4 个可选筛选条件。
+这类查询是"固定联表 + 少量动态条件"，写成 `@Select` + `<script>` 和 Mapper 方法放在一起，
+看方法就能看到完整 SQL，不用在两个文件之间跳。XML 的优势在于超长动态 SQL 和 `<sql>` 片段复用，
+本项目 3 个自定义查询还没到这个复杂度，所以没有建 `resources/mapper/` 目录。
+
+**7. 分页靠 MyBatis-Plus 拦截器，不在 SQL 里手写 LIMIT**
+
+`MyBatisPlusConfig` 注册了 `PaginationInnerInterceptor(DbType.MYSQL)`，
+Mapper 方法第一个参数传 `Page`，插件自动改写 SQL 追加 `LIMIT` 并执行 `COUNT`，
+返回的 `Page` 对象直接带上 `total`、`records`，Controller 层不需要拼分页信息。
+
 ## 已知不足
 
 这些是明确的短板，写在这里而不是藏着：
@@ -129,6 +141,9 @@ npm run dev
 - **挂号费写死 10 元**，没有按号别（普通/专家）和科室分级定价。
 - **号源未做并发控制**。没有"剩余号源"字段，两个人同时挂同一个医生的同一个午别不会互相排斥。
 - **`prescription_detail` 表是早期设计遗留**，实际业务用的是 `prescription_item`，该表与对应实体、Mapper 已无业务引用。
+- **退费后的状态语义不统一**：处方明细退费后置为 2（已退费），申请单退费后回到 0（未收费），
+  后者允许重新收费、前者不能。两种做法各有理由，但没有统一成一套状态机。
+- **病历号用 `Math.random()` 生成 6 位随机数**，高并发下有极小概率重复，重复时会撞 `patient_no` 唯一索引并直接抛异常，没有做重试。
 - **没有单元测试**，只有 Spring Boot 生成的 `contextLoads()`。
 
 ## 作者
